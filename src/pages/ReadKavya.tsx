@@ -375,8 +375,7 @@ const ReadKavya = () => {
                         {/* Collapse Toggle (Mobile mostly) */}
                         <button
                             onClick={() => setIsPlayerCollapsed(!isPlayerCollapsed)}
-                            className="bg-transparent border-none text-white absolute top-2 right-2 p-2 cursor-pointer opacity-50 hover:opacity-100 z-20"
-                            style={{ display: 'flex' }}
+                            className="collapse-btn bg-transparent border-none text-white absolute top-2 right-2 p-2 cursor-pointer opacity-50 hover:opacity-100 z-20"
                         >
                             {isPlayerCollapsed ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
                         </button>

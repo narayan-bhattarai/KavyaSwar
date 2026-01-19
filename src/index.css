@@ -585,4 +585,14 @@ textarea.input {
     overflow-y: scroll;
     /* Allow scrolling */
   }
+
+  /* Show Toggle Button on Mobile */
+  .collapse-btn {
+    display: flex;
+  }
+}
+
+/* Hide Toggle Button via Class by Default (Desktop) */
+.collapse-btn {
+  display: none;
 }
