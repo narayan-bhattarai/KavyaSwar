@@ -316,17 +316,19 @@ const ReadKavya = () => {
 
         return (
             <Layout title={doc.title} actions={headerControls}>
-                <div ref={containerRef} className="reader-container" style={{
-                    position: 'relative',
-                    flex: 1,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    overflow: 'hidden',
-                    backgroundColor: '#0a0a0a',
-                    backgroundImage: 'radial-gradient(circle at center, #1a1a1a 0%, #000000 100%)',
-                    minHeight: '400px' // Safety constraint
-                }}>
+                <div ref={containerRef} className="reader-container"
+                    onTouchStart={() => setIsPlayerCollapsed(true)} // Auto-collapse on touch
+                    style={{
+                        position: 'relative',
+                        flex: 1,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        overflow: 'hidden',
+                        backgroundColor: '#0a0a0a',
+                        backgroundImage: 'radial-gradient(circle at center, #1a1a1a 0%, #000000 100%)',
+                        minHeight: '400px' // Safety constraint
+                    }}>
 
                     {/* PDF Viewer - Centered */}
                     <div style={{
