@@ -1,11 +1,11 @@
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Upload, ChevronLeft, ChevronRight } from 'lucide-react';
 import type { KavyaDocument, KavyaPage } from '../lib/types';
 import { saveDocument, saveVoiceNote, saveBlob } from '../lib/db';
 import AudioRecorder from '../components/AudioRecorder';
-import Layout from '../components/Layout';
+import { useHeader } from '../components/Layout';
 
 // Clickable layer issues sometimes
 import { pdfjs, Document, Page } from 'react-pdf';
@@ -27,6 +27,9 @@ const CreateKavya = () => {
     const [audioMap, setAudioMap] = useState<Map<number, { blob: Blob, duration: number, id: string }>>(new Map());
 
     const [isSaving, setIsSaving] = useState(false);
+
+    // Set Header Title
+    useHeader("Studio");
 
     const onDocumentLoadSuccess = ({ numPages }: { numPages: number }) => {
         setNumPages(numPages);
@@ -120,37 +123,80 @@ const CreateKavya = () => {
         }
     };
 
-    const [containerSize, setContainerSize] = useState<{ width: number; height: number } | null>(null);
-    const containerRef = useRef<HTMLDivElement>(null);
+    // Layout constants
+    // MainSidebar (260) + StudioSidebar (320) + Padding (64) = 644 -> used 660 safe
+    // Header (64) + Padding (64) = 128
+    const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
+    const [pageAspectRatio, setPageAspectRatio] = useState<number | null>(null);
 
     useEffect(() => {
-        const element = containerRef.current;
-        if (!element) return;
+        let timeoutId: NodeJS.Timeout;
 
-        const observer = new ResizeObserver((entries) => {
-            const entry = entries[0];
-            if (entry) {
-                setContainerSize({
-                    width: entry.contentRect.width,
-                    height: entry.contentRect.height
-                });
-            }
-        });
+        const handleResize = () => {
+            clearTimeout(timeoutId);
+            timeoutId = setTimeout(() => {
+                const width = Math.max(200, window.innerWidth - 660);
+                const height = Math.max(200, window.innerHeight - 128);
+                setContainerSize({ width, height });
+            }, 150);
+        };
 
-        observer.observe(element);
-        return () => observer.disconnect();
+        handleResize(); // Initial Call
+        window.addEventListener('resize', handleResize);
+
+        return () => {
+            window.removeEventListener('resize', handleResize);
+            clearTimeout(timeoutId);
+        };
     }, []);
 
+    const onPageLoad = (page: any) => {
+        if (page.width && page.height) {
+            setPageAspectRatio(page.width / page.height);
+        }
+    };
+
+    // Smart sizing: Fit Width OR Fit Height (whichever fits inside)
     const getPageSize = () => {
-        if (!containerSize) return { width: undefined };
-        const { width: cWidth } = containerSize;
-        // Robust Fit Width: ensure we consistently subtract enough for padding & scrollbars
-        return { width: cWidth - 64 };
+        const { width, height } = containerSize;
+        if (!pageAspectRatio || !width || !height) return { width: Math.max(width, 200) };
+
+        const containerRatio = width / height;
+
+        // If Page is Flatter (wider) than container -> Fit Width
+        // If Page is Taller (thinner) than container -> Fit Height
+        return pageAspectRatio > containerRatio
+            ? { width }
+            : { height };
+    };
+
+    // Sub-component to handle URL Object lifecycle safely
+    const AudioRecorderWrapper = ({ currentPage, audioData, onRecord, onDelete }: any) => {
+        // Memoize URL creation to avoid leaks
+        const existingAudio = useMemo(() => {
+            if (!audioData) return undefined;
+            return URL.createObjectURL(audioData.blob);
+        }, [audioData]);
+
+        // Cleanup URL on unmount/change
+        useEffect(() => {
+            return () => {
+                if (existingAudio) URL.revokeObjectURL(existingAudio);
+            };
+        }, [existingAudio]);
+
+        return (
+            <AudioRecorder
+                key={currentPage}
+                onRecordingComplete={onRecord}
+                onDelete={onDelete}
+                existingAudio={existingAudio}
+            />
+        );
     };
 
     return (
-        <Layout title="Studio">
-
+        <>
             {/* Main Content Area */}
             {!pdfFile ? (
                 /* Empty Upload State (Unchanged...) */
@@ -247,7 +293,7 @@ const CreateKavya = () => {
                 /* Editor Workspace */
                 <div className="flex-1 flex overflow-hidden">
                     {/* Left: PDF Viewport - Scrollable */}
-                    <div ref={containerRef} className="flex-1 bg-black/5 overflow-auto flex justify-center items-start relative p-8" style={{ backgroundColor: 'var(--color-surface)' }}>
+                    <div className="flex-1 bg-black/5 overflow-auto flex justify-center items-start relative p-8" style={{ backgroundColor: 'var(--color-surface)' }}>
                         <div className="relative" style={{ height: 'fit-content', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)' }}>
                             <Document
                                 file={pdfFile}
@@ -257,6 +303,7 @@ const CreateKavya = () => {
                                 <Page
                                     pageNumber={currentPage}
                                     {...getPageSize()}
+                                    onLoadSuccess={onPageLoad}
                                     className="bg-white"
                                     renderTextLayer={false}
                                     renderAnnotationLayer={false}
@@ -361,11 +408,11 @@ const CreateKavya = () => {
                             }}>
                                 {/* Audio Recorder - Compact */}
                                 <div style={{ padding: '0.5rem', display: 'flex', justifyContent: 'center' }}>
-                                    <AudioRecorder
-                                        key={currentPage}
-                                        onRecordingComplete={handleAudioRecorded}
+                                    <AudioRecorderWrapper
+                                        currentPage={currentPage}
+                                        audioData={audioMap.get(currentPage)}
+                                        onRecord={handleAudioRecorded}
                                         onDelete={handleAudioDeleted}
-                                        existingAudio={audioMap.get(currentPage) ? URL.createObjectURL(audioMap.get(currentPage)!.blob) : undefined}
                                     />
                                 </div>
                             </div>
@@ -449,7 +496,7 @@ const CreateKavya = () => {
                     </div>
                 </div>
             )}
-        </Layout>
+        </>
     );
 };
 

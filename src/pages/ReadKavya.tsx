@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import { getDocument, getBlob } from '../lib/db';
 import type { KavyaDocument } from '../lib/types';
@@ -9,7 +9,7 @@ import { motion } from 'framer-motion';
 import { pdfjs, Document, Page } from 'react-pdf';
 import 'react-pdf/dist/Page/AnnotationLayer.css';
 import 'react-pdf/dist/Page/TextLayer.css';
-import Layout from '../components/Layout';
+import { useHeader } from '../components/Layout';
 
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
@@ -56,20 +56,37 @@ const ReadKavya = () => {
         return () => observer.disconnect();
     }, []);
 
-    const onPageLoad = (page: any) => setPageAspectRatio(page.width / page.height);
+    const onPageLoad = (page: any) => {
+        if (page.width && page.height) {
+            setPageAspectRatio(page.width / page.height);
+        }
+    };
 
     const getPageSizeProps = () => {
-        if (!containerSize) return { height: window.innerHeight - 100 };
+        // Fallback if container not measured yet
+        if (!containerSize) return { width: Math.min(window.innerWidth - 32, 800) };
         const { width, height } = containerSize;
 
-        // Mobile: Force Fit Width so text is readable and user can scroll
+        // Mobile: Force Fit Width
         if (window.innerWidth < 768) {
-            return { width: width - 32 }; // Simple horizontal padding
+            return { width: width - 32 };
         }
 
-        if (!pageAspectRatio) return { height: height - 40 };
-        const containerRatio = width / height;
-        return pageAspectRatio > containerRatio ? { width: width - 40 } : { height: height - 40 };
+        // Desktop:
+        // Case 1: We don't know the PDF's shape yet. 
+        // Default to 'Fit Width' (constrained) as it's safer against horizontal overflow than 'Fit Height'.
+        if (!pageAspectRatio) return { width: width - 64 };
+
+        // Case 2: We know the shape. Calculate 'Fit Inside'.
+        const availableW = width - 64;
+        const availableH = height - 64;
+        const containerRatio = availableW / availableH;
+
+        // If PDF is 'wider' than the container, fit to Width.
+        // If PDF is 'taller' than the container, fit to Height.
+        return pageAspectRatio > containerRatio
+            ? { width: availableW }
+            : { height: availableH };
     };
 
     useEffect(() => {
@@ -253,30 +270,11 @@ const ReadKavya = () => {
         }
     };
 
-    if (loading) return <div className="h-screen flex items-center justify-center">Loading...</div>;
-    if (error) return <div className="h-screen flex items-center justify-center text-red-500 font-bold">{error}</div>;
-    if (!doc) return <div className="h-screen flex items-center justify-center">Kavya not found.</div>;
+    // Construct Header Controls
+    const headerControls = useMemo(() => {
+        if (!doc || !doc.pdfSourceId) return undefined;
 
-
-    // Explicitly handle New Doc Type
-    if (doc.pdfSourceId) {
-        if (!mainPdfUrl) {
-            return (
-                <Layout title={doc.title}>
-                    <div className="flex items-center justify-center h-[calc(100vh-64px)] bg-black/5">
-                        <div className="animate-pulse text-xl font-serif opacity-50">Loading Document...</div>
-                    </div>
-                </Layout>
-            );
-        }
-
-        // Find audio for current page
-        const currentPageData = doc.pages?.find(p => p.pageNumber === currentPage);
-        const hasAudio = currentPageData?.audioId && audioUrls[currentPageData.audioId];
-        const currentAudioId = currentPageData?.audioId;
-        const isPlaying = currentAudioId && playingId === currentAudioId;
-
-        const headerControls = (
+        return (
             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                 <div style={{
                     display: 'flex',
@@ -319,210 +317,231 @@ const ReadKavya = () => {
                 </div>
             </div>
         );
+    }, [doc?.pdfSourceId, currentPage, numPages]);
+
+    useHeader(doc?.title || "KavyaSwar", headerControls);
+
+    if (loading) return <div className="h-screen flex items-center justify-center">Loading...</div>;
+    if (error) return <div className="h-screen flex items-center justify-center text-red-500 font-bold">{error}</div>;
+    if (!doc) return <div className="h-screen flex items-center justify-center">Kavya not found.</div>;
+
+
+    // Explicitly handle New Doc Type
+    if (doc.pdfSourceId) {
+        if (!mainPdfUrl) {
+            return (
+                <div className="flex items-center justify-center h-[calc(100vh-64px)] bg-black/5">
+                    <div className="animate-pulse text-xl font-serif opacity-50">Loading Document...</div>
+                </div>
+            );
+        }
+
+        // Find audio for current page
+        const currentPageData = doc.pages?.find(p => p.pageNumber === currentPage);
+        // ... calculation ...
+        const currentAudioId = currentPageData?.audioId;
+        const isPlaying = currentAudioId && playingId === currentAudioId;
+        const hasAudio = !!(currentAudioId && audioUrls[currentAudioId]);
 
         return (
-            <Layout title={doc.title} actions={headerControls}>
-                <div ref={containerRef} className="reader-container"
-                    onTouchStart={() => setIsPlayerCollapsed(true)} // Auto-collapse on touch
-                    style={{
-                        position: 'relative',
-                        flex: 1,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        overflow: 'hidden',
-                        backgroundColor: '#0a0a0a',
-                        backgroundImage: 'radial-gradient(circle at center, #1a1a1a 0%, #000000 100%)',
-                        minHeight: '400px' // Safety constraint
-                    }}>
+            <div ref={containerRef} className="reader-container"
+                onTouchStart={() => setIsPlayerCollapsed(true)} // Auto-collapse on touch
+                style={{
+                    position: 'relative',
+                    flex: 1,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    overflow: 'hidden',
+                    backgroundColor: '#0a0a0a',
+                    backgroundImage: 'radial-gradient(circle at center, #1a1a1a 0%, #000000 100%)',
+                    minHeight: '400px'
+                }}>
 
-                    {/* PDF Viewer - Centered */}
-                    <div style={{
-                        position: 'relative',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        zIndex: 1,
-                        width: '100%',
-                        height: '100%',
-                        padding: '2rem'
-                    }}>
-                        <div
-                            onContextMenu={(e) => e.preventDefault()}
-                            style={{
-                                userSelect: 'none',
-                                WebkitUserSelect: 'none',
-                                display: 'flex',
-                                justifyContent: 'center'
-                            }}>
-                            <div style={{
-                                boxShadow: '0 20px 50px rgba(0,0,0,0.5)',
-                                transition: 'all 0.3s ease',
-                            }}>
-                                <Document
-                                    file={mainPdfUrl}
-                                    onLoadSuccess={onDocumentLoadSuccess}
-                                    loading={<div className="text-white/50 animate-pulse">Loading Book...</div>}
-                                >
-                                    <Page
-                                        pageNumber={currentPage}
-                                        onLoadSuccess={onPageLoad}
-                                        onLoadError={(error) => console.error("PDF Page specific load error:", error)}
-                                        {...getPageSizeProps()}
-                                        className="bg-white"
-                                        renderTextLayer={false}
-                                        renderAnnotationLayer={false}
-                                    />
-                                </Document>
-                            </div>
+                {/* PDF Viewer - Centered */}
+                <div style={{
+                    position: 'relative',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    zIndex: 1,
+                    width: '100%',
+                    height: '100%',
+                    padding: '2rem'
+                }}>
+                    <div
+                        onContextMenu={(e) => e.preventDefault()}
+                        style={{
+                            userSelect: 'none',
+                            WebkitUserSelect: 'none',
+                            display: 'flex',
+                            justifyContent: 'center'
+                        }}>
+                        <div style={{
+                            boxShadow: '0 20px 50px rgba(0,0,0,0.5)',
+                            transition: 'all 0.3s ease',
+                        }}>
+                            <Document
+                                file={mainPdfUrl}
+                                onLoadSuccess={onDocumentLoadSuccess}
+                                loading={<div className="text-white/50 animate-pulse">Loading Book...</div>}
+                            >
+                                <Page
+                                    pageNumber={currentPage}
+                                    onLoadSuccess={onPageLoad}
+                                    onLoadError={(error) => console.error("PDF Page specific load error:", error)}
+                                    {...getPageSizeProps()}
+                                    className="bg-white"
+                                    renderTextLayer={false}
+                                    renderAnnotationLayer={false}
+                                />
+                            </Document>
                         </div>
                     </div>
+                </div>
 
-                    {/* Floating Metadata & Visualizer Card */}
-                    <div className={`player-overlay-card ${isPlayerCollapsed ? 'collapsed' : ''}`}>
-                        {/* Collapse Toggle (Mobile mostly) */}
-                        <button
-                            onClick={() => setIsPlayerCollapsed(!isPlayerCollapsed)}
-                            className="collapse-btn bg-transparent border-none text-white absolute top-2 right-2 p-2 cursor-pointer opacity-50 hover:opacity-100 z-20"
-                        >
-                            {isPlayerCollapsed ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
-                        </button>
+                {/* Floating Metadata & Visualizer Card */}
+                <div className={`player-overlay-card ${isPlayerCollapsed ? 'collapsed' : ''}`}>
+                    {/* Collapse Toggle (Mobile mostly) */}
+                    <button
+                        onClick={() => setIsPlayerCollapsed(!isPlayerCollapsed)}
+                        className="collapse-btn bg-transparent border-none text-white absolute top-2 right-2 p-2 cursor-pointer opacity-50 hover:opacity-100 z-20"
+                    >
+                        {isPlayerCollapsed ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+                    </button>
 
-                        {!isPlayerCollapsed && (
-                            <>
-                                <div>
-                                    <h1 style={{
-                                        fontSize: '1.25rem',
-                                        fontWeight: 600,
-                                        marginBottom: '0.35rem',
-                                        lineHeight: 1.4,
-                                        color: 'white',
-                                        wordBreak: 'break-word',
-                                        letterSpacing: '-0.01em',
-                                        paddingRight: '2.5rem' // Prevent overlap with collapse button
-                                    }}>
-                                        {doc.title}
-                                    </h1>
-                                    {doc.author && (
-                                        <p style={{ fontSize: '0.9rem', color: 'rgba(255,255,255,0.6)', fontWeight: 500 }}>
-                                            {doc.author}
-                                        </p>
-                                    )}
-                                    {doc.poetryType && (
-                                        <div style={{ marginTop: '0.75rem' }}>
-                                            <span style={{
-                                                fontSize: '0.65rem',
-                                                textTransform: 'uppercase',
-                                                letterSpacing: '0.1em',
-                                                padding: '0.25rem 0.6rem',
-                                                backgroundColor: 'rgba(255,255,255,0.08)',
-                                                borderRadius: '6px',
-                                                color: 'rgba(255,255,255,0.8)',
-                                                fontWeight: 600,
-                                                border: '1px solid rgba(255,255,255,0.05)'
-                                            }}>
-                                                {doc.poetryType}
-                                            </span>
-                                        </div>
-                                    )}
-                                </div>
-
-                                {/* Audio Visualizer Area */}
-                                <div style={{
-                                    height: '100px',
-                                    backgroundColor: 'rgba(0,0,0,0.3)',
-                                    borderRadius: '16px',
-                                    overflow: 'hidden',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    position: 'relative',
-                                    border: '1px solid rgba(255,255,255,0.05)'
-                                }}>
-                                    <canvas ref={setCanvasEl} width={250} height={100} style={{ width: '100%', height: '100%' }} />
-                                </div>
-                            </>
-                        )}
-
-                        {/* Minimized View Header */}
-                        {isPlayerCollapsed && (
-                            <div style={{ marginBottom: '0.5rem' }}>
+                    {!isPlayerCollapsed && (
+                        <>
+                            <div>
                                 <h1 style={{
-                                    fontSize: '1rem',
+                                    fontSize: '1.25rem',
                                     fontWeight: 600,
+                                    marginBottom: '0.35rem',
+                                    lineHeight: 1.4,
                                     color: 'white',
-                                    whiteSpace: 'nowrap',
-                                    overflow: 'hidden',
-                                    textOverflow: 'ellipsis',
-                                    paddingRight: '2rem'
+                                    wordBreak: 'break-word',
+                                    letterSpacing: '-0.01em',
+                                    paddingRight: '2.5rem' // Prevent overlap with collapse button
                                 }}>
                                     {doc.title}
                                 </h1>
+                                {doc.author && (
+                                    <p style={{ fontSize: '0.9rem', color: 'rgba(255,255,255,0.6)', fontWeight: 500 }}>
+                                        {doc.author}
+                                    </p>
+                                )}
+                                {doc.poetryType && (
+                                    <div style={{ marginTop: '0.75rem' }}>
+                                        <span style={{
+                                            fontSize: '0.65rem',
+                                            textTransform: 'uppercase',
+                                            letterSpacing: '0.1em',
+                                            padding: '0.25rem 0.6rem',
+                                            backgroundColor: 'rgba(255,255,255,0.08)',
+                                            borderRadius: '6px',
+                                            color: 'rgba(255,255,255,0.8)',
+                                            fontWeight: 600,
+                                            border: '1px solid rgba(255,255,255,0.05)'
+                                        }}>
+                                            {doc.poetryType}
+                                        </span>
+                                    </div>
+                                )}
                             </div>
-                        )}
 
-                        {/* Floating Play Button integrated in card */}
-                        {hasAudio && (
-                            <button
-                                onClick={currentAudioId ? () => togglePlay(currentAudioId) : undefined}
-                                disabled={!currentAudioId}
-                                style={{
-                                    width: '100%',
-                                    padding: '0.75rem',
-                                    borderRadius: '12px',
-                                    backgroundColor: isPlaying ? 'white' : 'rgba(255,255,255,0.1)',
-                                    color: isPlaying ? 'black' : 'white',
-                                    border: 'none',
-                                    fontWeight: 600,
-                                    fontSize: '0.9rem',
-                                    cursor: currentAudioId ? 'pointer' : 'not-allowed',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    gap: '0.5rem',
-                                    transition: 'all 0.2s',
-                                    opacity: currentAudioId ? 1 : 0.5
-                                }}
-                            >
-                                {isPlaying ? <Pause size={18} fill="currentColor" /> : <Play size={18} fill="currentColor" />}
-                                {isPlaying ? 'Pause' : (currentAudioId ? 'Play Narration' : 'No Audio')}
-                            </button>
-                        )}
-                    </div>
+                            {/* Audio Visualizer Area */}
+                            <div style={{
+                                height: '100px',
+                                backgroundColor: 'rgba(0,0,0,0.3)',
+                                borderRadius: '16px',
+                                overflow: 'hidden',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                position: 'relative',
+                                border: '1px solid rgba(255,255,255,0.05)'
+                            }}>
+                                <canvas ref={setCanvasEl} width={250} height={100} style={{ width: '100%', height: '100%' }} />
+                            </div>
+                        </>
+                    )}
+
+                    {/* Minimized View Header */}
+                    {isPlayerCollapsed && (
+                        <div style={{ marginBottom: '0.5rem' }}>
+                            <h1 style={{
+                                fontSize: '1rem',
+                                fontWeight: 600,
+                                color: 'white',
+                                whiteSpace: 'nowrap',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                paddingRight: '2rem'
+                            }}>
+                                {doc.title}
+                            </h1>
+                        </div>
+                    )}
+
+                    {/* Floating Play Button integrated in card */}
+                    {hasAudio && (
+                        <button
+                            onClick={currentAudioId ? () => togglePlay(currentAudioId) : undefined}
+                            disabled={!currentAudioId}
+                            style={{
+                                width: '100%',
+                                padding: '0.75rem',
+                                borderRadius: '12px',
+                                backgroundColor: isPlaying ? 'white' : 'rgba(255,255,255,0.1)',
+                                color: isPlaying ? 'black' : 'white',
+                                border: 'none',
+                                fontWeight: 600,
+                                fontSize: '0.9rem',
+                                cursor: currentAudioId ? 'pointer' : 'not-allowed',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: '0.5rem',
+                                transition: 'all 0.2s',
+                                opacity: currentAudioId ? 1 : 0.5
+                            }}
+                        >
+                            {isPlaying ? <Pause size={18} fill="currentColor" /> : <Play size={18} fill="currentColor" />}
+                            {isPlaying ? 'Pause' : (currentAudioId ? 'Play Narration' : 'No Audio')}
+                        </button>
+                    )}
                 </div>
-            </Layout>
+            </div>
         );
     }
 
     // RENDER: Legacy View (Fallback)
     return (
-        <Layout title={doc.title}>
-            <div className="container py-8 max-w-2xl bg-paper" style={{ margin: '0 auto' }}>
-                <div className="space-y-16">
-                    {(doc as any).poems?.map((poem: any, index: number) => (
-                        <motion.div key={poem.id} initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }} className="flex flex-col items-center w-full">
-                            <div className="w-full mb-6 leading-relaxed text-lg font-serif whitespace-pre-wrap text-center">
-                                {poem.type === 'pdf' && poem.fileRef && pdfUrls[poem.fileRef] ? (
-                                    <div className="w-full h-[600px] border border-border rounded-lg overflow-hidden bg-white shadow-sm">
-                                        <iframe src={pdfUrls[poem.fileRef]} className="w-full h-full" title={`Page ${index + 1}`} />
-                                    </div>
-                                ) : (
-                                    poem.content && <p>{poem.content}</p>
-                                )}
-                            </div>
-                            {poem.audioId && audioUrls[poem.audioId] && (
-                                <button onClick={() => togglePlay(poem.audioId!)} className={`btn-icon flex items-center gap-2 px-6 py-3 rounded-full transition-all duration-300 ${playingId === poem.audioId ? 'bg-accent text-white shadow-md' : 'bg-surface border border-accent text-accent hover:bg-accent hover:text-white'}`}>
-                                    {playingId === poem.audioId ? <Pause size={20} fill="currentColor" /> : <Play size={20} fill="currentColor" />}
-                                    <span className="text-sm font-medium">{playingId === poem.audioId ? 'Pause' : 'Listen'}</span>
-                                </button>
+        <div className="container py-8 max-w-2xl bg-paper" style={{ margin: '0 auto' }}>
+            <div className="space-y-16">
+                {(doc as any).poems?.map((poem: any, index: number) => (
+                    <motion.div key={poem.id} initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }} className="flex flex-col items-center w-full">
+                        <div className="w-full mb-6 leading-relaxed text-lg font-serif whitespace-pre-wrap text-center">
+                            {poem.type === 'pdf' && poem.fileRef && pdfUrls[poem.fileRef] ? (
+                                <div className="w-full h-[600px] border border-border rounded-lg overflow-hidden bg-white shadow-sm">
+                                    <iframe src={pdfUrls[poem.fileRef]} className="w-full h-full" title={`Page ${index + 1}`} />
+                                </div>
+                            ) : (
+                                poem.content && <p>{poem.content}</p>
                             )}
-                            {index < ((doc as any).poems?.length || 0) - 1 && <div className="w-16 h-px bg-border my-16 opacity-50"></div>}
-                        </motion.div>
-                    ))}
-                </div>
-                <div className="h-32"></div>
+                        </div>
+                        {poem.audioId && audioUrls[poem.audioId] && (
+                            <button onClick={() => togglePlay(poem.audioId!)} className={`btn-icon flex items-center gap-2 px-6 py-3 rounded-full transition-all duration-300 ${playingId === poem.audioId ? 'bg-accent text-white shadow-md' : 'bg-surface border border-accent text-accent hover:bg-accent hover:text-white'}`}>
+                                {playingId === poem.audioId ? <Pause size={20} fill="currentColor" /> : <Play size={20} fill="currentColor" />}
+                                <span className="text-sm font-medium">{playingId === poem.audioId ? 'Pause' : 'Listen'}</span>
+                            </button>
+                        )}
+                        {index < ((doc as any).poems?.length || 0) - 1 && <div className="w-16 h-px bg-border my-16 opacity-50"></div>}
+                    </motion.div>
+                ))}
             </div>
-        </Layout>
+            <div className="h-32"></div>
+        </div>
     );
 };
 

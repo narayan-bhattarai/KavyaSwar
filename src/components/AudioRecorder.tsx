@@ -78,8 +78,22 @@ const AudioRecorder = ({ onRecordingComplete, onDelete, existingAudio }: AudioRe
             if (timerRef.current) {
                 clearInterval(timerRef.current);
             }
+
+            // Close AudioContext to prevent leaks (limit is usually 6 contexts)
+            if (audioContextRef.current) {
+                audioContextRef.current.close().catch(e => console.error("Error closing AudioContext:", e));
+                audioContextRef.current = null;
+            }
         }
     };
+
+    // Cleanup on unmount
+    useEffect(() => {
+        return () => {
+            if (timerRef.current) clearInterval(timerRef.current);
+            if (audioContextRef.current) audioContextRef.current.close();
+        };
+    }, []);
 
     const handleDelete = () => {
         setAudioUrl(null);

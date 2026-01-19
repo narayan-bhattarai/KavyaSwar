@@ -376,25 +376,8 @@ textarea.input {
   }
 }
 
-/* Reader Container should be lighter/cleaner */
-.reader-container {
-  display: flex;
-  flex: 1;
-  overflow: hidden;
-  background-color: #f3f4f6;
-  /* Lighter gray, cleanly separating form paper */
-  position: relative;
-  justify-content: center;
-  align-items: flex-start;
-  padding: 2rem;
-}
-
 /* Dark mode overrides for specific areas to stay "clean" */
 @media (prefers-color-scheme: dark) {
-  .reader-container {
-    background-color: #111;
-  }
-
   .checkered-bg {
     background-image: radial-gradient(#ffffff 1px, transparent 1px);
     opacity: 0.1;
@@ -474,6 +457,22 @@ textarea.input {
   align-items: flex-start;
   padding: 2rem;
 }
+
+/* REACT-PDF SAFETY OVERRIDES */
+/* Force canvas to fit container if JS fails */
+.react-pdf__Page__canvas,
+.react-pdf__Page__textContent {
+  max-width: 100% !important;
+  height: auto !important;
+  display: block;
+  margin: 0 auto;
+}
+
+/* Ensure wrapping div doesn't overflow */
+.react-pdf__Page {
+  max-width: 100%;
+}
+
 
 .pdf-page-shadow {
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);

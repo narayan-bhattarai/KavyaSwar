@@ -1,32 +1,68 @@
-import { type ReactNode, useEffect, useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { type ReactNode, useEffect, useState, createContext, useContext, useCallback, useMemo } from 'react';
+import { useNavigate, useLocation, Outlet } from 'react-router-dom';
 import { Home as HomeIcon, Settings, Plus, Trash2, Menu, X } from 'lucide-react';
 import { getAllDocuments, deleteDocument } from '../lib/db';
 import type { KavyaDocument } from '../lib/types';
 
-interface LayoutProps {
-    children: ReactNode;
-    title?: string;
-    actions?: ReactNode; // Extra buttons in top bar
+// Context to allow child pages to control the Layout Header
+interface HeaderState {
+    title: string;
+    actions?: ReactNode;
 }
+interface LayoutContextType {
+    setHeader: (state: HeaderState) => void;
+    refreshDocs: () => void;
+}
+const LayoutContext = createContext<LayoutContextType>({ setHeader: () => { }, refreshDocs: () => { } });
 
-const Layout = ({ children, title, actions }: LayoutProps) => {
+export const useHeader = (title: string, actions?: ReactNode) => {
+    const { setHeader } = useContext(LayoutContext);
+    useEffect(() => {
+        setHeader({ title, actions });
+    }, [title, actions, setHeader]);
+};
+
+// Also export a hook to refresh the sidebar
+export const useRefreshDocs = () => {
+    const { refreshDocs } = useContext(LayoutContext);
+    return refreshDocs;
+};
+
+const Layout = () => {
     const navigate = useNavigate();
     const location = useLocation();
     const [hoveredDocId, setHoveredDocId] = useState<string | null>(null);
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
+    // Header State
+    const [{ title, actions }, setHeaderState] = useState<HeaderState>({ title: '' });
+
+    // Stable setHeader to prevent infinite loops in consumers
+    const setHeader = useCallback((newState: HeaderState) => {
+        setHeaderState(prev => {
+            // Primitive check for title, reference check for actions
+            if (prev.title === newState.title && prev.actions === newState.actions) {
+                return prev;
+            }
+            return newState;
+        });
+    }, []);
+
     const [docs, setDocs] = useState<KavyaDocument[]>([]);
+
+    const loadDocs = useCallback(async () => {
+        const documents = await getAllDocuments();
+        setDocs(documents.reverse());
+    }, []);
 
     useEffect(() => {
         loadDocs();
-        setIsSidebarOpen(false); // Close sidebar on nav
-    }, [location.pathname]);
+    }, [loadDocs]); // loadDocs is now stable
 
-    const loadDocs = async () => {
-        const documents = await getAllDocuments();
-        setDocs(documents.reverse());
-    };
+    // Auto-close sidebar on mobile nav
+    useEffect(() => {
+        setIsSidebarOpen(false);
+    }, [location.pathname]);
 
     const handleDelete = async (e: React.MouseEvent, id: string) => {
         e.stopPropagation();
@@ -37,9 +73,8 @@ const Layout = ({ children, title, actions }: LayoutProps) => {
             // If we deleted the current page, go home
             if (location.pathname === `/read/${id}`) {
                 navigate('/');
-            } else {
-                loadDocs(); // Refresh list
             }
+            loadDocs(); // Refresh list
         } catch (err) {
             console.error(err);
         }
@@ -47,165 +82,164 @@ const Layout = ({ children, title, actions }: LayoutProps) => {
 
     const isActive = (path: string) => location.pathname === path;
 
+    const contextValue = useMemo(() => ({ setHeader, refreshDocs: loadDocs }), [setHeader, loadDocs]);
+
     return (
-        <div className="app-layout" style={{ display: 'flex', height: '100vh', backgroundColor: 'var(--color-bg)', color: 'var(--color-ink)' }}>
-            {/* Mobile Sidebar Backdrop */}
-            <div
-                className={`sidebar-backdrop ${isSidebarOpen ? 'open' : ''}`}
-                onClick={() => setIsSidebarOpen(false)}
-            />
+        <LayoutContext.Provider value={contextValue}>
+            <div className="app-layout" style={{ display: 'flex', height: '100vh', backgroundColor: 'var(--color-bg)', color: 'var(--color-ink)' }}>
+                {/* Mobile Sidebar Backdrop */}
+                <div
+                    className={`sidebar-backdrop ${isSidebarOpen ? 'open' : ''}`}
+                    onClick={() => setIsSidebarOpen(false)}
+                />
 
-            {/* Sidebar */}
-            <aside className={`sidebar ${isSidebarOpen ? 'open' : ''}`}>
-                <div className="sidebar-header" style={{ padding: '1.5rem', marginBottom: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <img src="/logo.png" alt="KavyaSwar" style={{ width: '140px', height: 'auto', objectFit: 'contain' }} />
+                {/* Sidebar */}
+                <aside className={`sidebar ${isSidebarOpen ? 'open' : ''}`}>
+                    <div className="sidebar-header" style={{ padding: '1.5rem', marginBottom: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <img src="/logo.png" alt="KavyaSwar" style={{ width: '140px', height: 'auto', objectFit: 'contain' }} />
 
-                    {/* Close button for mobile */}
-                    <button
-                        className="md:hidden"
-                        onClick={() => setIsSidebarOpen(false)}
-                        style={{ background: 'transparent', border: 'none', color: '#b3b3b3', display: window.innerWidth < 768 ? 'block' : 'none' }}
-                    >
-                        {/* We can rely on css media queries for display block/none if we used tailwind, but here inline style with js check is flaky on resize. 
-                            Better to use a class that hides on desktop. 
-                            I'll use a style that sets display: none on desktop via media query in style tag or just specific class.
-                            Let's rely on standard styles I can add inline for now to fix 'worst view'.
-                         */}
-                        <X size={24} />
-                    </button>
-                </div>
-
-                <div className="sidebar-content" style={{ flex: 1, overflowY: 'auto', padding: '0 1rem' }}>
-
-                    <div style={{ marginBottom: '2rem' }}>
-                        <div
-                            onClick={() => navigate('/')}
-                            style={{
-                                display: 'flex', alignItems: 'center', gap: '1rem',
-                                padding: '0.75rem 1rem', borderRadius: '6px',
-                                cursor: 'pointer',
-                                color: isActive('/') ? 'white' : 'inherit',
-                                backgroundColor: isActive('/') ? '#282828' : 'transparent',
-                                fontWeight: isActive('/') ? 600 : 500,
-                                transition: 'all 0.2s'
-                            }}
+                        {/* Close button for mobile */}
+                        <button
+                            className="md:hidden"
+                            onClick={() => setIsSidebarOpen(false)}
+                            style={{ background: 'transparent', border: 'none', color: '#b3b3b3', display: window.innerWidth < 768 ? 'block' : 'none' }}
                         >
-                            <HomeIcon size={22} />
-                            <span>Home</span>
+                            <X size={24} />
+                        </button>
+                    </div>
+
+                    <div className="sidebar-content" style={{ flex: 1, overflowY: 'auto', padding: '0 1rem' }}>
+
+                        <div style={{ marginBottom: '2rem' }}>
+                            <div
+                                onClick={() => navigate('/')}
+                                style={{
+                                    display: 'flex', alignItems: 'center', gap: '1rem',
+                                    padding: '0.75rem 1rem', borderRadius: '6px',
+                                    cursor: 'pointer',
+                                    color: isActive('/') ? 'white' : 'inherit',
+                                    backgroundColor: isActive('/') ? '#282828' : 'transparent',
+                                    fontWeight: isActive('/') ? 600 : 500,
+                                    transition: 'all 0.2s'
+                                }}
+                            >
+                                <HomeIcon size={22} />
+                                <span>Home</span>
+                            </div>
+                        </div>
+
+                        <div style={{ marginBottom: '0.5rem', paddingLeft: '1rem', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', opacity: 0.6 }}>
+                            Your Library
+                        </div>
+
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                            {docs.map(doc => (
+                                <div
+                                    key={doc.id}
+                                    onClick={() => navigate(`/read/${doc.id}`)}
+                                    onMouseEnter={() => setHoveredDocId(doc.id)}
+                                    onMouseLeave={() => setHoveredDocId(null)}
+                                    style={{
+                                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                                        padding: '0.6rem 1rem', borderRadius: '4px', cursor: 'pointer',
+                                        backgroundColor: location.pathname === `/read/${doc.id}` ? '#282828' : 'transparent',
+                                        color: location.pathname === `/read/${doc.id}` ? 'white' : '#b3b3b3',
+                                        transition: 'color 0.2s'
+                                    }}
+                                    className="group hover:text-white"
+                                >
+                                    <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontSize: '0.9rem' }}>{doc.title}</span>
+
+                                    {hoveredDocId === doc.id && (
+                                        <button
+                                            onClick={(e) => handleDelete(e, doc.id)}
+                                            style={{
+                                                background: 'transparent',
+                                                color: '#ef4444',
+                                                border: 'none',
+                                                padding: '2px',
+                                                cursor: 'pointer',
+                                                display: 'flex', alignItems: 'center'
+                                            }}
+                                            title="Delete Book"
+                                        >
+                                            <Trash2 size={14} />
+                                        </button>
+                                    )}
+                                </div>
+                            ))}
+                            <button
+                                onClick={() => navigate('/create')}
+                                className="hover:text-white transition-colors"
+                                style={{
+                                    display: 'flex', alignItems: 'center', gap: '0.75rem',
+                                    padding: '0.6rem 1rem', marginTop: '0.5rem',
+                                    color: '#b3b3b3', cursor: 'pointer', fontSize: '0.9rem'
+                                }}
+                            >
+                                <div style={{ width: '24px', height: '24px', background: '#ccc', borderRadius: '2px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'black' }}>
+                                    <Plus size={16} strokeWidth={3} />
+                                </div>
+                                <span>Create Playlist</span>
+                            </button>
+                        </div>
+
+                    </div>
+
+                    <div style={{ padding: '1.5rem', borderTop: '1px solid #282828' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', color: '#b3b3b3', cursor: 'not-allowed', opacity: 0.6 }}>
+                            <Settings size={20} />
+                            <span style={{ fontSize: '0.9rem' }}>Settings</span>
                         </div>
                     </div>
+                </aside>
 
-                    <div style={{ marginBottom: '0.5rem', paddingLeft: '1rem', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', opacity: 0.6 }}>
-                        Your Library
-                    </div>
-
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                        {docs.map(doc => (
-                            <div
-                                key={doc.id}
-                                onClick={() => navigate(`/read/${doc.id}`)}
-                                onMouseEnter={() => setHoveredDocId(doc.id)}
-                                onMouseLeave={() => setHoveredDocId(null)}
+                {/* Main Content */}
+                <main className="main-content" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', background: 'linear-gradient(to bottom, #1e1e1e 0%, #121212 100%)' }}>
+                    {/* Top Bar - nicely blended */}
+                    <header className="top-bar" style={{ padding: '1rem 2rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', zIndex: 10, backgroundColor: 'transparent', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+                        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                            {/* Mobile Menu Toggle */}
+                            <button
+                                className="mobile-menu-btn"
+                                onClick={() => setIsSidebarOpen(true)}
                                 style={{
-                                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                                    padding: '0.6rem 1rem', borderRadius: '4px', cursor: 'pointer',
-                                    backgroundColor: location.pathname === `/read/${doc.id}` ? '#282828' : 'transparent',
-                                    color: location.pathname === `/read/${doc.id}` ? 'white' : '#b3b3b3',
-                                    transition: 'color 0.2s'
+                                    background: 'transparent',
+                                    border: 'none',
+                                    color: 'white',
+                                    cursor: 'pointer',
+                                    marginRight: '0.5rem',
+                                    display: 'none' // Hidden by default, shown via CSS media query
                                 }}
-                                className="group hover:text-white"
                             >
-                                <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontSize: '0.9rem' }}>{doc.title}</span>
+                                <Menu size={24} />
+                            </button>
 
-                                {hoveredDocId === doc.id && (
-                                    <button
-                                        onClick={(e) => handleDelete(e, doc.id)}
-                                        style={{
-                                            background: 'transparent',
-                                            color: '#ef4444',
-                                            border: 'none',
-                                            padding: '2px',
-                                            cursor: 'pointer',
-                                            display: 'flex', alignItems: 'center'
-                                        }}
-                                        title="Delete Book"
-                                    >
-                                        <Trash2 size={14} />
-                                    </button>
-                                )}
-                            </div>
-                        ))}
-                        <button
-                            onClick={() => navigate('/create')}
-                            className="hover:text-white transition-colors"
-                            style={{
-                                display: 'flex', alignItems: 'center', gap: '0.75rem',
-                                padding: '0.6rem 1rem', marginTop: '0.5rem',
-                                color: '#b3b3b3', cursor: 'pointer', fontSize: '0.9rem'
-                            }}
-                        >
-                            <div style={{ width: '24px', height: '24px', background: '#ccc', borderRadius: '2px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'black' }}>
-                                <Plus size={16} strokeWidth={3} />
-                            </div>
-                            <span>Create Playlist</span>
-                        </button>
+                            <style>{`
+                                @media (max-width: 768px) {
+                                    .mobile-menu-btn { display: block !important; }
+                                    .app-layout { flex-direction: column; } 
+                                    /* Actually keep flex row but handle sidebar as absolute */
+                                }
+                            `}</style>
+
+                            {/* Navigation back/forward could go here */}
+                            <h1 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'white', opacity: title ? 1 : 0 }}>
+                                {title}
+                            </h1>
+                        </div>
+                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                            {actions}
+                        </div>
+                    </header>
+
+                    {/* Page Content */}
+                    <div style={{ flex: 1, overflow: 'auto', display: 'flex', flexDirection: 'column' }}>
+                        <Outlet />
                     </div>
-
-                </div>
-
-                <div style={{ padding: '1.5rem', borderTop: '1px solid #282828' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', color: '#b3b3b3', cursor: 'not-allowed', opacity: 0.6 }}>
-                        <Settings size={20} />
-                        <span style={{ fontSize: '0.9rem' }}>Settings</span>
-                    </div>
-                </div>
-            </aside>
-
-            {/* Main Content */}
-            <main className="main-content" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', background: 'linear-gradient(to bottom, #1e1e1e 0%, #121212 100%)' }}>
-                {/* Top Bar - nicely blended */}
-                <header className="top-bar" style={{ padding: '1rem 2rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', zIndex: 10, backgroundColor: 'transparent', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
-                    <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                        {/* Mobile Menu Toggle */}
-                        <button
-                            className="mobile-menu-btn"
-                            onClick={() => setIsSidebarOpen(true)}
-                            style={{
-                                background: 'transparent',
-                                border: 'none',
-                                color: 'white',
-                                cursor: 'pointer',
-                                marginRight: '0.5rem',
-                                display: 'none' // Hidden by default, shown via CSS media query
-                            }}
-                        >
-                            <Menu size={24} />
-                        </button>
-
-                        <style>{`
-                            @media (max-width: 768px) {
-                                .mobile-menu-btn { display: block !important; }
-                                .app-layout { flex-direction: column; } 
-                                /* Actually keep flex row but handle sidebar as absolute */
-                            }
-                        `}</style>
-
-                        {/* Navigation back/forward could go here */}
-                        <h1 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'white', opacity: title ? 1 : 0 }}>
-                            {title}
-                        </h1>
-                    </div>
-                    <div style={{ display: 'flex', gap: '0.5rem' }}>
-                        {actions}
-                    </div>
-                </header>
-
-                {/* Page Content */}
-                <div style={{ flex: 1, overflow: 'auto', display: 'flex', flexDirection: 'column' }}>
-                    {children}
-                </div>
-            </main>
-        </div>
+                </main>
+            </div>
+        </LayoutContext.Provider>
     );
 };
 

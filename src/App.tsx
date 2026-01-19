@@ -2,18 +2,18 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Home from './pages/Home';
 import CreateKavya from './pages/CreateKavya';
 import ReadKavya from './pages/ReadKavya';
+import Layout from './components/Layout';
 import './App.css';
-
-// We use './index.css' primarily, App.css can be kept empty or removed if needed. 
-// But Vite template imports it.
 
 function App() {
   return (
     <Router>
       <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/create" element={<CreateKavya />} />
-        <Route path="/read/:id" element={<ReadKavya />} />
+        <Route element={<Layout />}>
+          <Route path="/" element={<Home />} />
+          <Route path="/create" element={<CreateKavya />} />
+          <Route path="/read/:id" element={<ReadKavya />} />
+        </Route>
       </Routes>
     </Router>
   );
