@@ -391,7 +391,8 @@ const ReadKavya = () => {
                                         lineHeight: 1.4,
                                         color: 'white',
                                         wordBreak: 'break-word',
-                                        letterSpacing: '-0.01em'
+                                        letterSpacing: '-0.01em',
+                                        paddingRight: '2.5rem' // Prevent overlap with collapse button
                                     }}>
                                         {doc.title}
                                     </h1>
