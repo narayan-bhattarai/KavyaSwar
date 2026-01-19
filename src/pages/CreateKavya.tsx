@@ -148,26 +148,9 @@ const CreateKavya = () => {
 
     const getPageSize = () => {
         if (!containerSize) return { width: undefined };
-        const { width: cWidth, height: cHeight } = containerSize;
-        const availableWidth = cWidth - 64; // More padding (32px each side)
-        const availableHeight = cHeight - 64;
-
-        // If we don't have aspect ratio yet, just fit width to be safe
-        if (!pageAspectRatio) return { width: availableWidth };
-
-        const containerRatio = availableWidth / availableHeight;
-
-        if (pageAspectRatio > containerRatio) {
-            // Page is wider relative to container -> Constrain by Width
-            return { width: availableWidth };
-        } else {
-            // Page is taller -> Constrain by Height, but ensure it doesn't overflow width
-            const calculatedWidth = availableHeight * pageAspectRatio;
-            if (calculatedWidth > availableWidth) {
-                return { width: availableWidth };
-            }
-            return { height: availableHeight };
-        }
+        const { width: cWidth } = containerSize;
+        // Robust Fit Width: ensure we consistently subtract enough for padding & scrollbars
+        return { width: cWidth - 64 };
     };
 
     return (
@@ -270,7 +253,7 @@ const CreateKavya = () => {
                 <div className="flex-1 flex overflow-hidden">
                     {/* Left: PDF Viewport - Scrollable */}
                     <div ref={containerRef} className="flex-1 bg-black/5 overflow-auto flex justify-center items-center relative p-8" style={{ backgroundColor: 'var(--color-surface)' }}>
-                        <div className="relative" style={{ height: 'fit-content', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)', minHeight: '600px' }}>
+                        <div className="relative" style={{ height: 'fit-content', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)' }}>
                             <Document
                                 file={pdfFile}
                                 onLoadSuccess={onDocumentLoadSuccess}
