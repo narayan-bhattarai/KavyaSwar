@@ -247,7 +247,7 @@ const CreateKavya = () => {
                 /* Editor Workspace */
                 <div className="flex-1 flex overflow-hidden">
                     {/* Left: PDF Viewport - Scrollable */}
-                    <div ref={containerRef} className="flex-1 bg-black/5 overflow-auto flex justify-center items-center relative p-8" style={{ backgroundColor: 'var(--color-surface)' }}>
+                    <div ref={containerRef} className="flex-1 bg-black/5 overflow-auto flex justify-center items-start relative p-8" style={{ backgroundColor: 'var(--color-surface)' }}>
                         <div className="relative" style={{ height: 'fit-content', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)' }}>
                             <Document
                                 file={pdfFile}
