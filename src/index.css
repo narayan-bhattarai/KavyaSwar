@@ -1,0 +1,507 @@
+:root {
+  /* Color Palette - Lively & Modern */
+  --color-paper: #ffffff;
+  /* Pure white for cleaner look */
+  --color-ink: #1e293b;
+  /* Slate-900 for sharp text */
+  --color-accent: #6366f1;
+  /* Indigo-500 for lively primary action */
+  --color-accent-light: #a5b4fc;
+  --color-surface: #f8fafc;
+  /* Slate-50 off-white surface */
+  --color-border: #e2e8f0;
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+
+  /* Typography */
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-serif: 'Merriweather', 'Noto Serif Devanagari', 'Times New Roman', serif;
+
+  /* Spacing */
+  --spacing-xs: 0.25rem;
+  --spacing-sm: 0.5rem;
+  --spacing-md: 1rem;
+  --spacing-lg: 1.5rem;
+  --spacing-xl: 3rem;
+
+  /* Animation */
+  --transition-fast: 0.2s ease;
+  --transition-medium: 0.3s ease-in-out;
+}
+
+/* Dark Mode Support */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-paper: #0f172a;
+    /* Slate 900 */
+    --color-ink: #f1f5f9;
+    /* Slate 100 */
+    --color-accent: #818cf8;
+    /* Indigo 400 */
+    --color-accent-light: #4338ca;
+    --color-surface: #1e293b;
+    /* Slate 800 */
+    --color-border: #334155;
+    /* Slate 700 */
+  }
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  background-color: var(--color-paper);
+  color: var(--color-ink);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+}
+
+img,
+picture,
+video,
+canvas,
+svg {
+  display: block;
+  max-width: 100%;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-serif);
+  font-weight: 700;
+  line-height: 1.2;
+  margin-top: 0;
+}
+
+p {
+  margin-bottom: 1.5rem;
+}
+
+/* Utility to center text (poetry style) */
+.text-center {
+  text-align: center;
+}
+
+.poetry-text {
+  font-family: var(--font-serif);
+  white-space: pre-wrap;
+  font-size: 1.125rem;
+}
+
+/* Container */
+.container {
+  width: 100%;
+  max-width: 600px;
+  /* Mobile-first/Reading focus */
+  margin: 0 auto;
+  padding: 0 var(--spacing-md);
+}
+
+/* Layouts */
+.flex {
+  display: flex;
+}
+
+.flex-col {
+  flex-direction: column;
+}
+
+.items-center {
+  align-items: center;
+}
+
+.justify-center {
+  justify-content: center;
+}
+
+.gap-md {
+  gap: var(--spacing-md);
+}
+
+.gap-lg {
+  gap: var(--spacing-lg);
+}
+
+/* Buttons */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.75rem 1.5rem;
+  border-radius: 9999px;
+  border: 1px solid transparent;
+  font-weight: 600;
+  font-size: 1rem;
+  text-decoration: none;
+  transition: all var(--transition-fast);
+  gap: 0.5rem;
+}
+
+.btn-primary {
+  background-color: var(--color-ink);
+  color: var(--color-paper);
+}
+
+.btn-primary:hover {
+  background-color: var(--color-accent);
+  transform: translateY(-1px);
+}
+
+.btn-secondary {
+  background-color: var(--color-paper);
+  border: 1px solid var(--color-ink);
+  color: var(--color-ink);
+}
+
+.btn-secondary:hover {
+  background-color: var(--color-surface);
+}
+
+.btn-icon {
+  padding: 0.75rem;
+  border-radius: 50%;
+}
+
+/* Cards */
+.card {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  padding: var(--spacing-lg);
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow var(--transition-fast);
+}
+
+.card:hover {
+  box-shadow: var(--shadow-md);
+}
+
+/* Inputs */
+.input {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background-color: var(--color-surface);
+  color: var(--color-ink);
+  font-family: inherit;
+  font-size: 1rem;
+  transition: border-color var(--transition-fast);
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--color-accent);
+}
+
+textarea.input {
+  min-height: 150px;
+  resize: vertical;
+}
+
+/* Utilities */
+.hidden {
+  display: none;
+}
+
+.fade-in {
+  animation: fadeIn 0.5s ease-out;
+}
+
+/* Logo Styles */
+.logo-img {
+  width: 250px;
+  max-width: 100%;
+  margin: 0 auto 1.5rem auto;
+  display: block;
+}
+
+@media (prefers-color-scheme: dark) {
+  .logo-img {
+    filter: brightness(0) invert(1);
+  }
+
+  /* Invert main logo in sidebar if dark mode */
+  .sidebar-header img {
+    filter: brightness(0) invert(1);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* --- New Professional Layout System --- */
+
+/* Helpers */
+.w-full {
+  width: 100%;
+}
+
+.h-full {
+  height: 100%;
+}
+
+.h-screen {
+  height: 100vh;
+}
+
+.flex-1 {
+  flex: 1;
+}
+
+.relative {
+  position: relative;
+}
+
+.absolute {
+  position: absolute;
+}
+
+.fixed {
+  position: fixed;
+}
+
+.overflow-hidden {
+  overflow: hidden;
+}
+
+.overflow-auto {
+  overflow: auto;
+}
+
+.z-10 {
+  z-index: 10;
+}
+
+.z-20 {
+  z-index: 20;
+}
+
+.checkered-bg {
+  background-image: radial-gradient(#000000 1px, transparent 1px);
+  background-size: 16px 16px;
+  background-color: var(--color-paper);
+  opacity: 0.5;
+}
+
+/* App Shell */
+.app-layout {
+  display: flex;
+  height: 100vh;
+  width: 100vw;
+  background-color: var(--color-paper);
+  overflow: hidden;
+}
+
+/* Group hover logic for delete button - Scoped to Nav Items */
+.group {
+  position: relative;
+}
+
+/* Ensure opacity transition works */
+.opacity-0 {
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.nav-item.group:hover .opacity-0 {
+  opacity: 1;
+}
+
+.sidebar {
+  width: 280px;
+  background-color: var(--color-surface);
+  /* Keep it light/surface */
+  border-right: 1px solid var(--color-border);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  transition: width var(--transition-medium);
+  z-index: 30;
+  box-shadow: 2px 0 5px rgba(0, 0, 0, 0.02);
+  /* Subtle depth */
+}
+
+/* Reader Container should be lighter/cleaner */
+.reader-container {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+  background-color: #f3f4f6;
+  /* Lighter gray, cleanly separating form paper */
+  position: relative;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 2rem;
+}
+
+/* Dark mode overrides for specific areas to stay "clean" */
+@media (prefers-color-scheme: dark) {
+  .reader-container {
+    background-color: #111;
+  }
+
+  .checkered-bg {
+    background-image: radial-gradient(#ffffff 1px, transparent 1px);
+    opacity: 0.1;
+  }
+}
+
+.sidebar-header {
+  padding: 1.5rem;
+  border-bottom: 1px solid var(--color-border);
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.sidebar-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1rem;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  color: var(--color-ink);
+  text-decoration: none;
+  font-weight: 500;
+  margin-bottom: 0.25rem;
+  transition: background-color var(--transition-fast);
+  cursor: pointer;
+}
+
+.nav-item:hover,
+.nav-item.active {
+  background-color: rgba(0, 0, 0, 0.05);
+  color: var(--color-accent);
+}
+
+.nav-item.active {
+  background-color: var(--color-paper);
+  border-left: 3px solid var(--color-accent);
+}
+
+/* Main Content Area */
+.main-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  /* Prevent flex item overflow */
+  position: relative;
+}
+
+/* Top Bar */
+.top-bar {
+  height: 64px;
+  background-color: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 1.5rem;
+  flex-shrink: 0;
+}
+
+/* Reader UI */
+.reader-container {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+  background-color: #e5e5e5;
+  /* Neutral gray for PDF background */
+  position: relative;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 2rem;
+}
+
+.pdf-page-shadow {
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+  transition: transform var(--transition-fast);
+}
+
+/* Floating Speaker Button */
+.speaker-fab {
+  position: absolute;
+  bottom: 2rem;
+  right: 2rem;
+  width: 64px;
+  height: 64px;
+  border-radius: 32px;
+  background-color: var(--color-accent);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(139, 69, 19, 0.4);
+  cursor: pointer;
+  transition: all var(--transition-medium);
+  z-index: 50;
+  border: none;
+}
+
+.speaker-fab:hover {
+  transform: scale(1.1);
+  background-color: #723a0f;
+}
+
+.speaker-fab.playing {
+  animation: pulse-ring 2s infinite;
+}
+
+@keyframes pulse-ring {
+  0% {
+    box-shadow: 0 0 0 0 rgba(139, 69, 19, 0.7);
+  }
+
+  70% {
+    box-shadow: 0 0 0 15px rgba(139, 69, 19, 0);
+  }
+
+  100% {
+    box-shadow: 0 0 0 0 rgba(139, 69, 19, 0);
+  }
+}
+
+/* Grid Utilities (since container was 600px limited) */
+.grid-2 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--spacing-lg);
+  width: 100%;
+}
+
+.max-w-6xl {
+  max-width: 1150px;
+  margin: 0 auto;
+}
