@@ -122,7 +122,6 @@ const CreateKavya = () => {
 
     const [containerSize, setContainerSize] = useState<{ width: number; height: number } | null>(null);
     const containerRef = useRef<HTMLDivElement>(null);
-    const [pageAspectRatio, setPageAspectRatio] = useState<number | null>(null);
 
     useEffect(() => {
         const element = containerRef.current;
@@ -141,10 +140,6 @@ const CreateKavya = () => {
         observer.observe(element);
         return () => observer.disconnect();
     }, []);
-
-    const onPageLoadSuccess = (page: any) => {
-        setPageAspectRatio(page.width / page.height);
-    };
 
     const getPageSize = () => {
         if (!containerSize) return { width: undefined };
@@ -261,7 +256,6 @@ const CreateKavya = () => {
                             >
                                 <Page
                                     pageNumber={currentPage}
-                                    onLoadSuccess={onPageLoadSuccess}
                                     {...getPageSize()}
                                     className="bg-white"
                                     renderTextLayer={false}
