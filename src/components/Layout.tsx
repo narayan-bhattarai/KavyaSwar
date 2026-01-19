@@ -164,7 +164,7 @@ const Layout = ({ children, title, actions }: LayoutProps) => {
             {/* Main Content */}
             <main className="main-content" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', background: 'linear-gradient(to bottom, #1e1e1e 0%, #121212 100%)' }}>
                 {/* Top Bar - nicely blended */}
-                <header className="top-bar" style={{ padding: '1rem 2rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', zIndex: 10 }}>
+                <header className="top-bar" style={{ padding: '1rem 2rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', zIndex: 10, backgroundColor: 'transparent', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
                     <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
                         {/* Mobile Menu Toggle */}
                         <button

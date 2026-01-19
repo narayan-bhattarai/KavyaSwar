@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { getDocument, getBlob } from '../lib/db';
 import type { KavyaDocument } from '../lib/types';
-import { Play, Pause, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Play, Pause, ChevronLeft, ChevronRight, ChevronDown, ChevronUp } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 // PDF.js worker setup
@@ -25,6 +25,7 @@ const ReadKavya = () => {
     const [mainPdfUrl, setMainPdfUrl] = useState<string | null>(null);
 
     const [playingId, setPlayingId] = useState<string | null>(null);
+    const [isPlayerCollapsed, setIsPlayerCollapsed] = useState(false);
     const [audioElements, setAudioElements] = useState<{ [key: string]: HTMLAudioElement }>({});
 
     // PDF Navigation for unified view
@@ -370,57 +371,87 @@ const ReadKavya = () => {
                     </div>
 
                     {/* Floating Metadata & Visualizer Card */}
-                    <div className="player-overlay-card">
-                        <div>
-                            <h1 style={{
-                                fontSize: '1.25rem',
-                                fontWeight: 600,
-                                marginBottom: '0.35rem',
-                                lineHeight: 1.4,
-                                color: 'white',
-                                wordBreak: 'break-word',
-                                letterSpacing: '-0.01em'
-                            }}>
-                                {doc.title}
-                            </h1>
-                            {doc.author && (
-                                <p style={{ fontSize: '0.9rem', color: 'rgba(255,255,255,0.6)', fontWeight: 500 }}>
-                                    {doc.author}
-                                </p>
-                            )}
-                            {doc.poetryType && (
-                                <div style={{ marginTop: '0.75rem' }}>
-                                    <span style={{
-                                        fontSize: '0.65rem',
-                                        textTransform: 'uppercase',
-                                        letterSpacing: '0.1em',
-                                        padding: '0.25rem 0.6rem',
-                                        backgroundColor: 'rgba(255,255,255,0.08)',
-                                        borderRadius: '6px',
-                                        color: 'rgba(255,255,255,0.8)',
-                                        fontWeight: 600,
-                                        border: '1px solid rgba(255,255,255,0.05)'
-                                    }}>
-                                        {doc.poetryType}
-                                    </span>
-                                </div>
-                            )}
-                        </div>
+                    <div className={`player-overlay-card ${isPlayerCollapsed ? 'collapsed' : ''}`}>
+                        {/* Collapse Toggle (Mobile mostly) */}
+                        <button
+                            onClick={() => setIsPlayerCollapsed(!isPlayerCollapsed)}
+                            className="bg-transparent border-none text-white absolute top-2 right-2 p-2 cursor-pointer opacity-50 hover:opacity-100 z-20"
+                            style={{ display: 'flex' }}
+                        >
+                            {isPlayerCollapsed ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+                        </button>
 
-                        {/* Audio Visualizer Area */}
-                        <div style={{
-                            height: '100px',
-                            backgroundColor: 'rgba(0,0,0,0.3)',
-                            borderRadius: '16px',
-                            overflow: 'hidden',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            position: 'relative',
-                            border: '1px solid rgba(255,255,255,0.05)'
-                        }}>
-                            <canvas ref={setCanvasEl} width={250} height={100} style={{ width: '100%', height: '100%' }} />
-                        </div>
+                        {!isPlayerCollapsed && (
+                            <>
+                                <div>
+                                    <h1 style={{
+                                        fontSize: '1.25rem',
+                                        fontWeight: 600,
+                                        marginBottom: '0.35rem',
+                                        lineHeight: 1.4,
+                                        color: 'white',
+                                        wordBreak: 'break-word',
+                                        letterSpacing: '-0.01em'
+                                    }}>
+                                        {doc.title}
+                                    </h1>
+                                    {doc.author && (
+                                        <p style={{ fontSize: '0.9rem', color: 'rgba(255,255,255,0.6)', fontWeight: 500 }}>
+                                            {doc.author}
+                                        </p>
+                                    )}
+                                    {doc.poetryType && (
+                                        <div style={{ marginTop: '0.75rem' }}>
+                                            <span style={{
+                                                fontSize: '0.65rem',
+                                                textTransform: 'uppercase',
+                                                letterSpacing: '0.1em',
+                                                padding: '0.25rem 0.6rem',
+                                                backgroundColor: 'rgba(255,255,255,0.08)',
+                                                borderRadius: '6px',
+                                                color: 'rgba(255,255,255,0.8)',
+                                                fontWeight: 600,
+                                                border: '1px solid rgba(255,255,255,0.05)'
+                                            }}>
+                                                {doc.poetryType}
+                                            </span>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Audio Visualizer Area */}
+                                <div style={{
+                                    height: '100px',
+                                    backgroundColor: 'rgba(0,0,0,0.3)',
+                                    borderRadius: '16px',
+                                    overflow: 'hidden',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    position: 'relative',
+                                    border: '1px solid rgba(255,255,255,0.05)'
+                                }}>
+                                    <canvas ref={setCanvasEl} width={250} height={100} style={{ width: '100%', height: '100%' }} />
+                                </div>
+                            </>
+                        )}
+
+                        {/* Minimized View Header */}
+                        {isPlayerCollapsed && (
+                            <div style={{ marginBottom: '0.5rem' }}>
+                                <h1 style={{
+                                    fontSize: '1rem',
+                                    fontWeight: 600,
+                                    color: 'white',
+                                    whiteSpace: 'nowrap',
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
+                                    paddingRight: '2rem'
+                                }}>
+                                    {doc.title}
+                                </h1>
+                            </div>
+                        )}
 
                         {/* Floating Play Button integrated in card */}
                         {hasAudio && (
@@ -446,7 +477,7 @@ const ReadKavya = () => {
                                 }}
                             >
                                 {isPlaying ? <Pause size={18} fill="currentColor" /> : <Play size={18} fill="currentColor" />}
-                                {isPlaying ? 'Pause Narration' : (currentAudioId ? 'Play Narration' : 'No Audio')}
+                                {isPlaying ? 'Pause' : (currentAudioId ? 'Play Narration' : 'No Audio')}
                             </button>
                         )}
                     </div>
