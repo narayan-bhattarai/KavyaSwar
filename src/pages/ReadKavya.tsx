@@ -61,6 +61,12 @@ const ReadKavya = () => {
     const getPageSizeProps = () => {
         if (!containerSize) return { height: window.innerHeight - 100 };
         const { width, height } = containerSize;
+
+        // Mobile: Force Fit Width so text is readable and user can scroll
+        if (window.innerWidth < 768) {
+            return { width: width - 32 }; // Simple horizontal padding
+        }
+
         if (!pageAspectRatio) return { height: height - 40 };
         const containerRatio = width / height;
         return pageAspectRatio > containerRatio ? { width: width - 40 } : { height: height - 40 };
