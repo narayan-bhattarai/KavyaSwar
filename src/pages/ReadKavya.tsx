@@ -370,23 +370,7 @@ const ReadKavya = () => {
                     </div>
 
                     {/* Floating Metadata & Visualizer Card */}
-                    <div style={{
-                        position: 'absolute',
-                        right: '2rem',
-                        top: '50%',
-                        transform: 'translateY(-50%)',
-                        width: '280px',
-                        backgroundColor: 'rgba(20, 20, 20, 0.75)',
-                        backdropFilter: 'blur(24px)',
-                        border: '1px solid rgba(255,255,255,0.08)',
-                        borderRadius: '20px',
-                        padding: '1.5rem',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: '1.25rem',
-                        zIndex: 10,
-                        boxShadow: '0 12px 40px rgba(0,0,0,0.4)',
-                    }}>
+                    <div className="player-overlay-card">
                         <div>
                             <h1 style={{
                                 fontSize: '1.25rem',

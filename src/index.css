@@ -535,3 +535,54 @@ textarea.input {
   max-width: 1150px;
   margin: 0 auto;
 }
+
+/* Player/Metadata Overlay Card */
+.player-overlay-card {
+  position: absolute;
+  right: 2rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 280px;
+  background-color: rgba(20, 20, 20, 0.75);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 20px;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  z-index: 10;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+}
+
+@media (max-width: 768px) {
+  .player-overlay-card {
+    position: fixed;
+    /* Stick to bottom */
+    top: auto;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+    transform: none;
+    border-radius: 20px 20px 0 0;
+    border: none;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 1.5rem;
+    padding-bottom: max(1.5rem, env(safe-area-inset-bottom));
+    /* Darker background for legibility */
+    background-color: #121212;
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.5);
+  }
+
+  /* Adjust Reader Container on Mobile so content isn't hidden behind player */
+  .reader-container {
+    padding-bottom: 240px;
+    /* Space for the bottom sheet */
+    align-items: flex-start;
+    /* Align top so we can scroll down into padding */
+    overflow-y: scroll;
+    /* Allow scrolling */
+  }
+}
