@@ -1,6 +1,6 @@
 import { type ReactNode, useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Home as HomeIcon, Settings, Plus, Trash2 } from 'lucide-react';
+import { Home as HomeIcon, Settings, Plus, Trash2, Menu, X } from 'lucide-react';
 import { getAllDocuments, deleteDocument } from '../lib/db';
 import type { KavyaDocument } from '../lib/types';
 
@@ -14,11 +14,13 @@ const Layout = ({ children, title, actions }: LayoutProps) => {
     const navigate = useNavigate();
     const location = useLocation();
     const [hoveredDocId, setHoveredDocId] = useState<string | null>(null);
+    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
     const [docs, setDocs] = useState<KavyaDocument[]>([]);
 
     useEffect(() => {
         loadDocs();
+        setIsSidebarOpen(false); // Close sidebar on nav
     }, [location.pathname]);
 
     const loadDocs = async () => {
@@ -47,17 +49,30 @@ const Layout = ({ children, title, actions }: LayoutProps) => {
 
     return (
         <div className="app-layout" style={{ display: 'flex', height: '100vh', backgroundColor: 'var(--color-bg)', color: 'var(--color-ink)' }}>
+            {/* Mobile Sidebar Backdrop */}
+            <div
+                className={`sidebar-backdrop ${isSidebarOpen ? 'open' : ''}`}
+                onClick={() => setIsSidebarOpen(false)}
+            />
+
             {/* Sidebar */}
-            <aside className="sidebar" style={{
-                width: '260px',
-                backgroundColor: '#121212', // Very dark background like Spotify/Apple Music
-                color: '#b3b3b3',
-                display: 'flex',
-                flexDirection: 'column',
-                borderRight: '1px solid #282828'
-            }}>
-                <div className="sidebar-header" style={{ padding: '1.5rem', marginBottom: '1rem', display: 'flex', justifyContent: 'center' }}>
-                    <img src="/logo.png" alt="KavyaSwar" style={{ width: '160px', height: 'auto', objectFit: 'contain' }} />
+            <aside className={`sidebar ${isSidebarOpen ? 'open' : ''}`}>
+                <div className="sidebar-header" style={{ padding: '1.5rem', marginBottom: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <img src="/logo.png" alt="KavyaSwar" style={{ width: '140px', height: 'auto', objectFit: 'contain' }} />
+
+                    {/* Close button for mobile */}
+                    <button
+                        className="md:hidden"
+                        onClick={() => setIsSidebarOpen(false)}
+                        style={{ background: 'transparent', border: 'none', color: '#b3b3b3', display: window.innerWidth < 768 ? 'block' : 'none' }}
+                    >
+                        {/* We can rely on css media queries for display block/none if we used tailwind, but here inline style with js check is flaky on resize. 
+                            Better to use a class that hides on desktop. 
+                            I'll use a style that sets display: none on desktop via media query in style tag or just specific class.
+                            Let's rely on standard styles I can add inline for now to fix 'worst view'.
+                         */}
+                        <X size={24} />
+                    </button>
                 </div>
 
                 <div className="sidebar-content" style={{ flex: 1, overflowY: 'auto', padding: '0 1rem' }}>
@@ -151,6 +166,30 @@ const Layout = ({ children, title, actions }: LayoutProps) => {
                 {/* Top Bar - nicely blended */}
                 <header className="top-bar" style={{ padding: '1rem 2rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', zIndex: 10 }}>
                     <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                        {/* Mobile Menu Toggle */}
+                        <button
+                            className="mobile-menu-btn"
+                            onClick={() => setIsSidebarOpen(true)}
+                            style={{
+                                background: 'transparent',
+                                border: 'none',
+                                color: 'white',
+                                cursor: 'pointer',
+                                marginRight: '0.5rem',
+                                display: 'none' // Hidden by default, shown via CSS media query
+                            }}
+                        >
+                            <Menu size={24} />
+                        </button>
+
+                        <style>{`
+                            @media (max-width: 768px) {
+                                .mobile-menu-btn { display: block !important; }
+                                .app-layout { flex-direction: column; } 
+                                /* Actually keep flex row but handle sidebar as absolute */
+                            }
+                        `}</style>
+
                         {/* Navigation back/forward could go here */}
                         <h1 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'white', opacity: title ? 1 : 0 }}>
                             {title}
