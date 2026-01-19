@@ -114,7 +114,7 @@ const CreateKavya = () => {
             navigate('/');
         } catch (e) {
             console.error(e);
-            alert("Failed to save.");
+            alert(`Failed to save: ${e instanceof Error ? e.message : JSON.stringify(e)}`);
         } finally {
             setIsSaving(false);
         }
