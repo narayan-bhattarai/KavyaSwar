@@ -8,23 +8,7 @@ const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 export const supabase = createClient(supabaseUrl, supabaseKey);
 
-// --- HELPER TYPES FOR DB ---
-interface DBKavyaDocument {
-    id: string;
-    title: string;
-    author?: string;
-    poetry_type?: string;
-    created_at: string;
-    pdf_source_path?: string;
-}
 
-interface DBKavyaPage {
-    id: string;
-    document_id: string;
-    page_number: number;
-    audio_path?: string;
-    audio_duration?: number;
-}
 
 export const initDB = async () => {
     // No-op for Supabase, but keeping signature compatible if needed
@@ -126,6 +110,28 @@ export const getAllDocuments = async (): Promise<KavyaDocument[]> => {
         pdfSourceId: d.pdf_source_path,
         pages: [] // List view doesn't need pages usually
     }));
+};
+
+export const deleteDocument = async (id: string) => {
+    // 1. Get Document to find assets to delete (Optional cleanup)
+    const doc = await getDocument(id);
+    if (doc) {
+        const filesToDelete: string[] = [];
+        if (doc.pdfSourceId) filesToDelete.push(doc.pdfSourceId);
+        if (doc.pages) {
+            doc.pages.forEach(p => {
+                if (p.audioId) filesToDelete.push(p.audioId);
+            });
+        }
+
+        if (filesToDelete.length > 0) {
+            await supabase.storage.from('kavya-assets').remove(filesToDelete);
+        }
+    }
+
+    // 2. Delete from DB (Cascades pages)
+    const { error } = await supabase.from('kavya_documents').delete().eq('id', id);
+    if (error) throw error;
 };
 
 // --- BLOB / STORAGE METHODS ---

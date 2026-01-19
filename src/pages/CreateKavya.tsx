@@ -91,8 +91,7 @@ const CreateKavya = () => {
             // Save DB Entry
             await saveDocument({
                 ...document,
-                sourceType: 'mixed', // Re-using mixed for now, or could define 'pdf-centric' or 'pdf'
-                fileId: pdfId
+                sourceType: 'mixed' // Re-using mixed for now, or could define 'pdf-centric' or 'pdf'
             });
 
             // Save PDF Blob

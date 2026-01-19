@@ -1,7 +1,7 @@
 import { type ReactNode, useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Home as HomeIcon, Settings, Plus, Trash2 } from 'lucide-react';
-import { getAllDocuments, initDB } from '../lib/db';
+import { getAllDocuments, deleteDocument } from '../lib/db';
 import type { KavyaDocument } from '../lib/types';
 
 interface LayoutProps {
@@ -31,8 +31,7 @@ const Layout = ({ children, title, actions }: LayoutProps) => {
         if (!confirm("Are you sure you want to delete this book completely?")) return;
 
         try {
-            const db = await initDB();
-            await db.delete('documents', id);
+            await deleteDocument(id);
             // If we deleted the current page, go home
             if (location.pathname === `/read/${id}`) {
                 navigate('/');
