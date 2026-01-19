@@ -147,17 +147,25 @@ const CreateKavya = () => {
     };
 
     const getPageSize = () => {
-        if (!containerSize || !pageAspectRatio) return { width: undefined }; // specific undefined to let valid defaults take over if needed
+        if (!containerSize) return { width: undefined };
         const { width: cWidth, height: cHeight } = containerSize;
-        const availableWidth = cWidth - 48; // Padding
-        const availableHeight = cHeight - 48;
+        const availableWidth = cWidth - 64; // More padding (32px each side)
+        const availableHeight = cHeight - 64;
+
+        // If we don't have aspect ratio yet, just fit width to be safe
+        if (!pageAspectRatio) return { width: availableWidth };
+
         const containerRatio = availableWidth / availableHeight;
 
         if (pageAspectRatio > containerRatio) {
-            // Page is wider (relative to container) -> Constrain by Width
+            // Page is wider relative to container -> Constrain by Width
             return { width: availableWidth };
         } else {
-            // Page is taller -> Constrain by Height
+            // Page is taller -> Constrain by Height, but ensure it doesn't overflow width
+            const calculatedWidth = availableHeight * pageAspectRatio;
+            if (calculatedWidth > availableWidth) {
+                return { width: availableWidth };
+            }
             return { height: availableHeight };
         }
     };
